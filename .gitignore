@@ -22,3 +22,19 @@ images/
 .vscode/
 .idea/
 .DS_Store
+
+# Local source backups and temporary checkpoints
+app.py.backup
+app.py.before_*
+image_ids.json.before_*
+*.backup
+
+# Native build artifacts
+VectorForge/build/
+VectorForge/CMakeFiles/
+VectorForge/CMakeCache.txt
+VectorForge/cmake_install.cmake
+VectorForge/Makefile
+
+# Local CMake backup
+VectorForge/CMakeLists.txt.before_*

@@ -1,0 +1,5 @@
+streamlit==1.66.1
+open_clip_torch==3.3.0
+Pillow==12.3.0
+numpy==2.5.2
+requests==2.34.2
