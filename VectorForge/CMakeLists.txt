@@ -33,12 +33,58 @@ set_target_properties(vectorforge_shared PROPERTIES OUTPUT_NAME vectorforge)
 target_include_directories(vectorforge_shared PUBLIC include)
 target_link_libraries(vectorforge_shared PUBLIC Threads::Threads)
 
-option(VF_BUILD_TESTS "Build VectorForge tests and benchmark" ON)
+option(VF_BUILD_TESTS "Build the complete VectorForge test suite" ON)
+option(VF_BUILD_COLLECTION_TEST "Build only the collection correctness test" OFF)
+option(VF_BUILD_BENCHMARK "Build the VectorForge benchmark" OFF)
+
+if(VF_BUILD_COLLECTION_TEST)
+  enable_testing()
+  add_executable(test_collection tests/test_collection.cpp)
+  target_link_libraries(test_collection PRIVATE vectorforge)
+  add_test(NAME collection COMMAND test_collection)
+endif()
+
+if(VF_BUILD_BENCHMARK)
+  add_executable(vf_bench bench/bench_main.cpp)
+  target_link_libraries(vf_bench PRIVATE vectorforge)
+endif()
+
+option(VF_BUILD_BENCHMARK_10K "Build the 10K-vector benchmark" OFF)
+
+if(VF_BUILD_BENCHMARK_10K)
+  add_executable(vf_bench_10k bench/bench_10k.cpp)
+  target_link_libraries(vf_bench_10k PRIVATE vectorforge)
+endif()
+
+option(VF_BUILD_BENCHMARK_25K "Build the 25K-vector benchmark" OFF)
+
+if(VF_BUILD_BENCHMARK_25K)
+  add_executable(vf_bench_25k bench/bench_25k.cpp)
+  target_link_libraries(vf_bench_25k PRIVATE vectorforge)
+endif()
+
+option(VF_BUILD_BENCHMARK_25K_EF200 "Build the 25K benchmark with ef_construction=200" OFF)
+
+if(VF_BUILD_BENCHMARK_25K_EF200)
+  add_executable(vf_bench_25k_ef200 bench/bench_25k_ef200.cpp)
+  target_link_libraries(vf_bench_25k_ef200 PRIVATE vectorforge)
+endif()
+
+option(VF_BUILD_BENCHMARK_25K_SIMPLE "Build the 25K benchmark with simple neighbor selection" OFF)
+
+if(VF_BUILD_BENCHMARK_25K_SIMPLE)
+  add_executable(vf_bench_25k_simple bench/bench_25k_simple.cpp)
+  target_link_libraries(vf_bench_25k_simple PRIVATE vectorforge)
+endif()
+
+option(VF_BUILD_BENCHMARK_CONFIGURABLE "Build the configurable benchmark" OFF)
+
+if(VF_BUILD_BENCHMARK_CONFIGURABLE)
+  add_executable(vf_bench_configurable bench/bench_configurable.cpp)
+  target_link_libraries(vf_bench_configurable PRIVATE vectorforge)
+endif()
 
 if(VF_BUILD_TESTS)
-  add_executable(vf_bench bench/bench_main.cpp)
-  target_link_libraries(vf_bench vectorforge)
-
   enable_testing()
   foreach(t distance collection persistence concurrency crash)
     add_executable(test_${t} tests/test_${t}.cpp)
