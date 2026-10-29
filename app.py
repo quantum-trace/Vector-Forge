@@ -248,7 +248,10 @@ def search_wikimedia_images(query, limit=8):
 
 @st.cache_data(ttl=600, show_spinner=False)
 def fetch_external_image(url, fallback_url="", referer=""):
-    """Fetch original image bytes, then try the thumbnail as fallback."""
+    """Fetch original image bytes, retrying temporary failures and then fallback."""
+    import time
+    from urllib.parse import urlsplit, urlunsplit
+
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (X11; Linux x86_64) "
@@ -258,15 +261,11 @@ def fetch_external_image(url, fallback_url="", referer=""):
         "Referer": referer or "https://commons.wikimedia.org/",
     }
 
-    from urllib.parse import urlsplit, urlunsplit
-
     def clean_image_url(value):
         if not value:
             return ""
         parts = urlsplit(value)
-        return urlunsplit(
-            (parts.scheme, parts.netloc, parts.path, "", "")
-        )
+        return urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
 
     last_error = None
     candidates = [
@@ -277,24 +276,39 @@ def fetch_external_image(url, fallback_url="", referer=""):
     for candidate in dict.fromkeys(candidates):
         if not candidate:
             continue
-        try:
-            response = requests.get(
-                candidate,
-                headers=headers,
-                timeout=25,
-            )
-            response.raise_for_status()
-            content_type = response.headers.get("Content-Type", "").lower()
-            if not content_type.startswith("image/"):
-                raise ValueError("The server did not return image data.")
-            return response.content
-        except (requests.RequestException, ValueError) as exc:
-            last_error = exc
-            print(
-                f"[VectorForge download] URL failed: {candidate} | "
-                f"{type(exc).__name__}: {exc}",
-                flush=True,
-            )
+
+        for attempt in range(3):
+            try:
+                response = requests.get(
+                    candidate,
+                    headers=headers,
+                    timeout=25,
+                )
+
+                if response.status_code == 429 or response.status_code >= 500:
+                    if attempt < 2:
+                        retry_after = response.headers.get("Retry-After", "")
+                        try:
+                            delay = min(float(retry_after), 10)
+                        except (ValueError, TypeError):
+                            delay = 2 ** attempt
+                        time.sleep(max(delay, 1))
+                        continue
+
+                response.raise_for_status()
+                content_type = response.headers.get("Content-Type", "").lower()
+                if not content_type.startswith("image/"):
+                    raise ValueError("The server did not return image data.")
+                return response.content
+
+            except (requests.RequestException, ValueError) as exc:
+                last_error = exc
+                status = getattr(getattr(exc, "response", None), "status_code", None)
+                if status == 429 or (status and status >= 500):
+                    if attempt < 2:
+                        time.sleep(2 ** attempt)
+                        continue
+                break
 
     raise ValueError(f"Could not fetch image from either URL: {last_error}")
 
