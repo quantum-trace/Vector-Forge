@@ -1,4 +1,4 @@
-🚀 Vector Forge
+# Vector Forge
 
 Building Ideas Into Powerful Solutions
 
